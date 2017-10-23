@@ -1,0 +1,53 @@
+macro dn(u) (N.x*dx(u)+N.y*dy(u) ) //  def the normal derivative 
+int i=1;
+for (i=1;i<4;i++)
+{
+mesh Th = square(2^i,2^i); // unite square 
+//border C(t=0, 2*pi) { x=cos(t); y=sin(t); };
+//mesh Th = buildmesh(C(100));
+fespace Vh(Th,P2dc);     // Discontinous P2 finite element
+fespace Xh(Th,P2);
+//  if param = 0 => Vh must be P2 otherwise we need some penalisation  
+real pena=1/2^i;// a paramater to add penalisation 
+func c=0;
+varf Ans(u,v)= 
+   int2d(Th)(dx(u)*dx(v)+dy(u)*dy(v) +c*u*v )
+ + intalledges(Th)(//  loop on all  edge of all triangle 
+       // the edge are see nTonEdge times so we / nTonEdge
+       // remark: nTonEdge =1 on border edge and =2 on internal 
+       // we are in a triange th normal is the exterior normal
+       // def: jump = external - internal value; on border exter value =0
+       //      mean = (external + internal value)/2, on border just internal value
+            ( jump(v)*mean(dn(u)) + jump(u)*mean(dn(v)) 
+          + pena*jump(u)*jump(v) ) / nTonEdge 
+)
+;
+func f=1;
+func g=0;
+Vh u,v;
+problem A(u,v,solver=UMFPACK) = Ans 
+- int2d(Th)(f*v) 
+- int1d(Th)(- g*dn(v) + pena*g*v) 
+;
+ 
+ A; // solve  DG
+///////////////
+//error estimate
+//save(u);
+real gg=  int2d(Th)(dx(u)*dx(u)+dy(u)*dy(u) +c*u*u )
+ + intalledges(Th)(
+            ( jump(u)*mean(dn(u)) + jump(u)*mean(dn(u)) 
+          + pena*jump(u)*jump(u) ) / nTonEdge 
+);
+real mm= int2d(Th)(f*u) 
+	+ int1d(Th)(- g*dn(u) + pena*g*u);
+cout << "residual="<< gg-mm << endl;
+
+real error=0;// u-0.25*(x^2+y^2);
+cout<<"error="<<error<<endl;
+
+macro grad(u) (dx(u)+dy(u))//
+Vh gradu=grad(u);
+plot(u,cmm="NIPG solution residual"+(gg-mm)+"error"+error , wait=1,value=1,dim=2,fill=1);
+plot(gradu,cmm="NIPG grad(u)",wait=1,dim=2,fill=0);
+}

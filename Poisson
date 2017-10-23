@@ -1,0 +1,17 @@
+//border C(t=0, 2*pi) { x=cos(t); y=sin(t); };
+//mesh Th = buildmesh(C(100));
+mesh Th= square(10,10);
+plot(Th);
+fespace Vh(Th,P1dc);
+Vh u,v,v1=y,v2=-x;
+real c=1;
+func f=1;
+macro n() (N.x*v1+N.y*v2))//
+problem poisson(u,v, solver=UMFPACK )=
+int2d(Th)(dx(u)*dx(v)+dy(u)*dy(v))+
+int2d(Th)(c*u*v)
++intalledges(Th)((1-nTonEdge)*mean (n)*jump(v))
+-int2d(Th)(f*v);
+plot(u);
+
+
